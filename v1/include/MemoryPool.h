@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <cassert>
+#include <mutex>
 
 namespace memoryPool
 {
