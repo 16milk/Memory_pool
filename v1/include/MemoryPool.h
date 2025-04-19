@@ -3,6 +3,7 @@
 #include <memory>
 #include <cassert>
 #include <mutex>
+#include <atomic>
 
 namespace memoryPool
 {
@@ -12,7 +13,7 @@ namespace memoryPool
 
 struct Slot
 {
-    Slot* next;
+    std::atomic<Slot*> next;
 };
 
 class MemoryPool
@@ -30,14 +31,17 @@ private:
     void allocateNewBlock();
     size_t padPointer(char* p, size_t align);
 
+    // 使用 CAS 操作进行无锁入队和出队
+    bool pushFreeList(Slot* slot);
+    Slot* popFreeList();
+
 private:
     int BlockSize_;      // 内存块大小
     int SlotSize_;       // 槽大小
     Slot* firstBlock_;   // 指向内存池管理的首个实际内存块
     Slot* curSlot_;      // 指向当前未被使用过的槽
-    Slot* freeList_;     // 指向空闲的槽（被使用过后又被释放的槽）
+    std::atomic<Slot*> freeList_;     // 指向空闲的槽（被使用过后又被释放的槽）
     Slot* lastSlot_;     // 作为当前内存块中最后能够存放元素的位置标识
-    std::mutex mutexForFreeList_;  // 保证freeList_在多线程中操作的原子性
     std::mutex mutexForBlock_;  // 保证多线程情况下避免不必要的
 };
 
