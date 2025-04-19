@@ -25,46 +25,36 @@ void MemoryPool::init(size_t size)
     SlotSize_ = size;
     firstBlock_ = nullptr;
     curSlot_ = nullptr;
-    freeList_ = nullptr;
+    freeList_.store(nullptr, std::memory_order_relaxed);
     lastSlot_ = nullptr;
 }
 
 void* MemoryPool::allocate()
 {
     // 优先使用空闲链表中的内存槽
-    if (freeList_ != nullptr)
-    {
-        std::lock_guard<std::mutex> lock(mutexForFreeList_);
-        if (freeList_ != nullptr)
-        {
-            Slot* temp = freeList_;
-            freeList_ = freeList_->next;
-            return temp;
-        }
+    Slot* slot = popFreeList();
+    if (slot != nullptr) {
+        return slot;
     }
-    Slot* temp;
+
+    // 如果空闲链表为空，则分配新的内存
     std::lock_guard<std::mutex> lock(mutexForBlock_);
-    if (curSlot_ >= lastSlot_)
-    {
-        // 无Slot可用， 开辟一个新的Block
+    if (curSlot_ >= lastSlot_) {
         allocateNewBlock();
     }
-    temp = curSlot_;
-    // curSlot_是Slot*类型, 槽间都是连续的，没有指针，只有freeList中才有指针
-    curSlot_ += SlotSize_ / sizeof(Slot);
 
-    return temp;
+    Slot* result = curSlot_;
+    curSlot_ = reinterpret_cast<Slot*>(reinterpret_cast<char*>(curSlot_) + SlotSize_);
+    return result;
 }
 
 void MemoryPool::deallocate(void* ptr)
 {
-    if (ptr)
-    {
-        std::lock_guard<std::mutex> lock(mutexForFreeList_);
-        // 将void* 类型装换成Slot*，变成结点头插入
-        reinterpret_cast<Slot*>(ptr)->next = freeList_;
-        freeList_ = reinterpret_cast<Slot*>(ptr);
-    }
+    if (!ptr) return;
+    // static_cast适用于已知 ptr 原本就是 Slot* 类型的情况
+    // 更安全，因为编译器会检查类型兼容性
+    Slot* slot = static_cast<Slot*>(ptr);
+    pushFreeList(slot);
 }
 
 void MemoryPool::allocateNewBlock()
