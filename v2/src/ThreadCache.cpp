@@ -109,9 +109,37 @@ void ThreadCache::returnToCentralCache(void* start, size_t size)
 
     // 将内存块串成链表
     char* current = static_cast<char*>(start);
-    
+    // 使用对齐后的大小计算分割点
+    char* splitNode = current;
+    for (size_t i = 0; i < keepNum - 1; ++i)
+    {
+        splitNode = reinterpret_cast<char*>(*reinterpret_cast<void**>(splitNode));
+        if (splitNode == nullptr)
+        {
+            // 如果链表提前结束，更新实际的返回数量
+            returnNum = batchNum - (i + 1);
+            break;
+        }
+    }
 
+    if (splitNode != nullptr)
+    {
+        // 将要返回的部分和要保留的部分断开
+        void* nextNode = *reinterpret_cast<void**>(splitNode);
+        *reinterpret_cast<void**>(splitNode) = nullptr;
 
+        // 更新 ThreadCache 的空闲链表
+        freeList_[index] = start;
+
+        // 更新自由链表大小
+        freeListSize_[index] = keepNum;
+
+        // 将剩余部分返回给CentralCache
+        if (returnNum > 0 && nextNode != nullptr)
+        {
+            CentralCache::getInstance().returnRange(nextNode, returnNum * alignedSize, index);
+        }
+    }
 }
 
 }
