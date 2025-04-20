@@ -13,9 +13,9 @@ public:
         static CentralCache instance;
         return instance;
     }
-    // 传出去
+    // 从中心缓存获取内存块
     void* fetchRange(size_t index);
-    // 收回来
+    // 将一段连续的内存块链表归还到中心缓存对应大小的自由列表中
     void returnRange(void* start, size_t size, size_t bytes);
 
 private:
