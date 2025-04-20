@@ -78,7 +78,7 @@ void* ThreadCache::fetchFromCentralCache(size_t index)
 
     // 更新自由链表大小
     size_t batchNum = 0;
-    void* current = start; // 从 start 开始遍历    ???? 不会多一个吗 ????
+    void* current = freeList_[index]; 
 
     while (current != nullptr)
     {
@@ -129,7 +129,7 @@ void ThreadCache::returnToCentralCache(void* start, size_t size)
         *reinterpret_cast<void**>(splitNode) = nullptr;
 
         // 更新 ThreadCache 的空闲链表
-        freeList_[index] = start;
+        freeList_[index] = nextNode;
 
         // 更新自由链表大小
         freeListSize_[index] = keepNum;
