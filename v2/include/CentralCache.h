@@ -18,7 +18,7 @@ public:
     void returnRange(void* start, size_t size, size_t bytes);
 
 private:
-    // 相互是还所有原子指针为 nullptr
+    // 所有原子指针为 nullptr
     CentralCache()
     {
         for (auto& ptr : centralFreeList_)
