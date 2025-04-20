@@ -13,8 +13,9 @@ public:
         static CentralCache instance;
         return instance;
     }
-
+    // 传出去
     void* fetchRange(size_t index);
+    // 收回来
     void returnRange(void* start, size_t size, size_t bytes);
 
 private:
