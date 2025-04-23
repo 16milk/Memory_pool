@@ -88,7 +88,7 @@ void PageCache::deallocateSpan(void* ptr, size_t numPages)
             nextList = nextSpan->next;
             found = true;
         }
-        else if (nextList != nullptr) 
+        else if (nextList != nullptr)  // 如果不是头节点则遍历链表查找
         {
             Span* prev = nextList;
             while (prev->next)
